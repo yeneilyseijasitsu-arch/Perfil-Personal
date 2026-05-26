@@ -73,7 +73,19 @@
             color: var(--color-acento);
             font-weight: 500;
             font-size: 1rem;
-            margin-bottom: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Datos de identificación y contacto */
+        header .datos-contacto {
+            color: var(--texto-secundario);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        header .datos-contacto span {
+            display: inline-block;
+            margin: 0 0.5rem;
         }
 
         /* --- CONTACT BUTTON --- */
@@ -128,16 +140,22 @@
             color: var(--texto-principal);
         }
 
-        /* --- COMPONENTE 3: PROYECTOS --- */
-        .tarjeta-proyecto {
+        /* --- COMPONENTE 3: PROYECTOS / ASIGNACIONES --- */
+        .lista-proyectos, .lista-asignaciones {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .tarjeta-proyecto, .enlace-asignacion {
             background-color: var(--bg-tarjetas);
             border: 1px solid var(--borde);
             padding: 1.5rem;
             border-radius: 12px;
-            transition: border-color 0.2s ease;
+            transition: border-color 0.2s ease, transform 0.2s ease;
         }
 
-        .tarjeta-proyecto:hover {
+        .tarjeta-proyecto:hover, .enlace-asignacion:hover {
             border-color: var(--color-acento);
         }
 
@@ -150,13 +168,36 @@
         }
 
         .tarjeta-proyecto h3::before {
-            content: "🌿"; /* Un pequeño detalle botánico discreto */
+            content: "🌿"; /* Detalle botánico */
             font-size: 1rem;
         }
 
         .tarjeta-proyecto p {
             color: var(--texto-secundario);
             font-size: 0.95rem;
+        }
+
+        /* Estilos específicos para la lista de links de GitHub */
+        .enlace-asignacion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            color: var(--texto-principal);
+            font-weight: 500;
+        }
+
+        .enlace-asignacion:hover {
+            transform: translateX(4px);
+        }
+
+        .enlace-asignacion .repo-tag {
+            font-size: 0.8rem;
+            background-color: rgba(92, 219, 149, 0.1);
+            color: var(--color-acento);
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(92, 219, 149, 0.2);
         }
 
         /* --- FOOTER --- */
@@ -179,7 +220,12 @@
             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Yeneily Seijas" class="avatar">
             <h1>Yeneily Nohemy Seijas Martinez</h1>
             <p class="carrera">Desarrollo & Programación Web</p>
-            <a href="mailto:tu-correo@email.com" class="btn-contacto">Contactar conmigo</a>
+            
+            <div class="datos-contacto">
+                C.I. 32.554.575 <span>•</span> yeneilyseijas.itsu@gmail.com
+            </div>
+            
+            <a href="mailto:yeneilyseijas.itsu@gmail.com" class="btn-contacto">Contactar conmigo</a>
         </header>
 
         <main>
@@ -193,21 +239,41 @@
                 </ul>
             </section>
 
+            <section class="asignaciones">
+                <h2>Asignaciones Académicas</h2>
+                <div class="lista-asignaciones">
+                    <a href="#" target="_blank" class="enlace-asignacion">
+                        <span>📁 Asignación 1: Base de Datos Relacional</span>
+                        <span class="repo-tag">GitHub</span>
+                    </a>
+                    <a href="#" target="_blank" class="enlace-asignacion">
+                        <span>📁 Asignación 2: Programación Orientada a Objetos</span>
+                        <span class="repo-tag">GitHub</span>
+                    </a>
+                    <a href="#" target="_blank" class="enlace-asignacion">
+                        <span>📁 Asignación 3: Configuración de Entornos Linux</span>
+                        <span class="repo-tag">GitHub</span>
+                    </a>
+                </div>
+            </section>
+
             <section class="proyectos">
                 <h2>Proyectos Destacados</h2>
-                <div class="tarjeta-proyecto">
-                    <h3>Herbarium Digital</h3>
-                    <p>Una enciclopedia botánica digital interactiva que integra un sistema simulación de riego automatizado para la gestión óptima de plantas.</p>
-                </div>
-                <div class="tarjeta-proyecto">
-                    <h3>coleccion copa 2026 - Merchandising oficial</h3>
-                    <p>Una colección de productos de merchandising oficial para la Copa 2026.</p>
+                <div class="lista-proyectos">
+                    <div class="tarjeta-proyecto">
+                        <h3>Herbarium Digital</h3>
+                        <p>Una enciclopedia botánica digital interactiva que integra un sistema de simulación de riego automatizado para la gestión óptima de plantas.</p>
                     </div>
+                    <div class="tarjeta-proyecto">
+                        <h3>Colección Copa 2026 - Merchandising oficial</h3>
+                        <p>Una colección de productos de merchandising oficial para la Copa 2026.</p>
+                    </div>
+                </div>
             </section>
         </main>
 
         <footer>
-            <p>&copy; 2026 Yenaily Seijas. Desarrollado con fines académicos.</p>
+            <p>&copy; 2026 Yeneily Seijas. Desarrollado con fines académicos.</p>
         </footer>
 
     </div>
