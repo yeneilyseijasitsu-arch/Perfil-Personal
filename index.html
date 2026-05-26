@@ -2,34 +2,211 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mi Perfil de Estudiante</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil Profesional | Yeneily Seijas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Variables de color para cambiar el diseño fácilmente */
+        :root {
+            --bg-principal: #0f111a;
+            --bg-tarjetas: #161925;
+            --texto-principal: #f3f4f6;
+            --texto-secundario: #9ca3af;
+            --color-acento: #5cdb95; /* Verde musgo moderno */
+            --color-acento-hover: #379683;
+            --borde: #23283d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-principal);
+            color: var(--texto-principal);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        /* Contenedor principal que centra todo con un ancho máximo elegante */
+        .perfil-container {
+            width: 100%;
+            max-width: 650px;
+        }
+
+        /* --- COMPONENTE 1: HEADER --- */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--borde);
+        }
+
+        .avatar {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--color-acento);
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 24px rgba(92, 219, 149, 0.15);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 0.3rem;
+        }
+
+        header .carrera {
+            color: var(--color-acento);
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        /* --- CONTACT BUTTON --- */
+        .btn-contacto {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--color-acento);
+            color: var(--bg-principal);
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-contacto:hover {
+            background-color: var(--color-acento-hover);
+            transform: translateY(-2px);
+        }
+
+        /* --- SECCIONES COMUNES --- */
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--texto-secundario);
+            margin-bottom: 1rem;
+        }
+
+        /* --- COMPONENTE 2: SKILLS --- */
+        .skills-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            list-style: none;
+        }
+
+        .skills-tags li {
+            background-color: var(--bg-tarjetas);
+            border: 1px solid var(--borde);
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--texto-principal);
+        }
+
+        /* --- COMPONENTE 3: PROYECTOS --- */
+        .tarjeta-proyecto {
+            background-color: var(--bg-tarjetas);
+            border: 1px solid var(--borde);
+            padding: 1.5rem;
+            border-radius: 12px;
+            transition: border-color 0.2s ease;
+        }
+
+        .tarjeta-proyecto:hover {
+            border-color: var(--color-acento);
+        }
+
+        .tarjeta-proyecto h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tarjeta-proyecto h3::before {
+            content: "🌿"; /* Un pequeño detalle botánico discreto */
+            font-size: 1rem;
+        }
+
+        .tarjeta-proyecto p {
+            color: var(--texto-secundario);
+            font-size: 0.95rem;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--texto-secundario);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--borde);
+            padding-top: 1.5rem;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
 
-    <header>
-        <img src="tu-foto.jpg" alt="Foto de perfil">
-        <h1>Yeneily Nohemy Seijas Martinez</h1>
-        <p>Carrera: Programacion Web</p>
-    </header>
+    <div class="perfil-container">
+        
+        <header>
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Yeneily Seijas" class="avatar">
+            <h1>Yeneily Nohemy Seijas Martinez</h1>
+            <p class="carrera">Desarrollo & Programación Web</p>
+            <a href="mailto:tu-correo@email.com" class="btn-contacto">Contactar conmigo</a>
+        </header>
 
-    <main>
-        <section class="habilidades">
-            <h2>Mis Habilidades</h2>
-            <ul>
-                <li>Python</li>
-                <li>Diseño Web</li>
-                <li>Linux</li>
-            </ul>
-        </section>
+        <main>
+            <section class="habilidades">
+                <h2>Mis Habilidades</h2>
+                <ul class="skills-tags">
+                    <li>Python</li>
+                    <li>Diseño Web (UI/UX)</li>
+                    <li>Linux</li>
+                    <li>Bases de Datos</li>
+                </ul>
+            </section>
 
-        <section class="proyectos">
-            <h2>Proyectos Recientes</h2>
-            <div class="tarjeta-proyecto">
-                <h3>Proyecto 1: Herbarium Digital</h3>
-                <p> HERBARIUM es una pagina enfocada en la botanica. Tiene la funcion de un sistema de riego automatizado.</p>
-            </div>
-        </section>
-    </main>
+            <section class="proyectos">
+                <h2>Proyectos Destacados</h2>
+                <div class="tarjeta-proyecto">
+                    <h3>Herbarium Digital</h3>
+                    <p>Una enciclopedia botánica digital interactiva que integra un sistema simulación de riego automatizado para la gestión óptima de plantas.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Yenaily Seijas. Desarrollado con fines académicos.</p>
+        </footer>
+
+    </div>
 
 </body>
 </html>
