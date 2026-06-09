@@ -1,0 +1,21 @@
+/* Animaciones y estilos personalizados de resplandor (Glow) */
+.glow-blue {
+    box-shadow: 0 0 50px 10px rgba(56, 189, 248, 0.25);
+}
+.glow-red {
+    box-shadow: 0 0 50px 10px rgba(239, 68, 68, 0.25);
+}
+.text-glow {
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+}
+.glassmorphism {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.glassmorphism-light {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}

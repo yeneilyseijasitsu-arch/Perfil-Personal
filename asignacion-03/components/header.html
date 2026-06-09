@@ -1,0 +1,29 @@
+<header class="fixed top-0 left-0 w-full z-40 transition-all duration-300 glassmorphism py-4 px-6 md:px-12 flex justify-between items-center">
+    <a href="#" class="flex items-center gap-2">
+        <span class="font-serif text-2xl md:text-3xl font-extrabold tracking-widest bg-gradient-to-r from-amber-400 via-crepusculo-400 to-amber-200 bg-clip-text text-transparent">LUMINA</span>
+    </a>
+
+    <!-- Menú de navegación de escritorio -->
+    <nav class="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-slate-300">
+        <a href="#tecnologia" class="hover:text-amber-400 transition-colors duration-200">Tecnología</a>
+        <a href="#catalogo" class="hover:text-amber-400 transition-colors duration-200">Productos</a>
+        <a href="#ciencia" class="hover:text-amber-400 transition-colors duration-200">La Ciencia</a>
+        <a href="#testimonios" class="hover:text-amber-400 transition-colors duration-200">Opiniones</a>
+    </nav>
+
+    <!-- Botones de Acción -->
+    <div class="flex items-center gap-4">
+        <!-- Selector de Modo Rápido (Amanecer / Ocaso) -->
+        <button id="global-mode-toggle" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 hover:border-amber-400/50 bg-white/5 transition-all" onclick="toggleGlobalTheme()">
+            <span id="toggle-icon">🌙</span> <span id="toggle-text" class="hidden sm:inline">Modo Noche</span>
+        </button>
+
+        <!-- Carrito Trigger -->
+        <button onclick="toggleCart()" class="relative p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <span id="cart-badge" class="absolute -top-1 -right-1 bg-amber-500 text-noches-950 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center scale-0 transition-transform duration-300">0</span>
+        </button>
+    </div>
+</header>
