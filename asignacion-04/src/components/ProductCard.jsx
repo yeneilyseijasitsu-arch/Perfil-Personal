@@ -1,7 +1,7 @@
 import React from 'react';
 
-// Componente puro y reutilizable para cada tarjeta de producto
-export default function ProductCard({ id, title, price, image }) {
+// Recibimos "onBuy" desde las propiedades heredadas
+export default function ProductCard({ id, title, price, image, onBuy }) {
   return (
     <div style={styles.card}>
       <div style={styles.imageContainer}>
@@ -11,24 +11,28 @@ export default function ProductCard({ id, title, price, image }) {
         <span style={styles.badge}>ID: {id}</span>
         <h3 style={styles.title}>{title}</h3>
         <p style={styles.price}>${price.toFixed(2)}</p>
+        
+        {/* Ejecuta la función del padre para actualizar el contador */}
+        <button style={styles.buyButton} onClick={onBuy}>
+          Comprar
+        </button>
       </div>
     </div>
   );
 }
 
-// Estilos básicos integrados para asegurar que se vea impecable
 const styles = {
   card: {
     backgroundColor: '#1e1e2e',
     borderRadius: '12px',
     border: '1px solid #313244',
-    padding: '16px',
+    padding: '20px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
     transition: 'transform 0.2s, box-shadow 0.2s',
     color: '#cdd6f4',
-    height: '100%'
+    height: 'auto'
   },
   imageContainer: {
     backgroundColor: '#fff',
@@ -48,7 +52,7 @@ const styles = {
   info: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '12px',
     flexGrow: 1
   },
   badge: {
@@ -74,6 +78,19 @@ const styles = {
     fontSize: '1.2rem',
     fontWeight: 'bold',
     color: '#f9e2af',
-    marginTop: 'auto'
+    marginTop: 'auto',
+    marginBottom: '4px'
+  },
+  buyButton: {
+    backgroundColor: '#b4befe',
+    color: '#11111b',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '10px 16px',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    width: '100%',
+    transition: 'background-color 0.2s ease',
   }
 };
