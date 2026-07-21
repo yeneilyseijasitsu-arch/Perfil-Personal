@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS_CORE // Bitácora de Control</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyberblack: '#050505',
+                        cyberdark: '#120202',
+                        cyberred: '#bc2c2c', // Rojo gótico desaturado (antes #ff1a1a)
+                        cyberred_muted: '#5a1818', // Ajustado para entonar con el nuevo rojo
+                        cyberred_dark: '#2d0b0b', // Tono sangre oscura para fondos
+                        cybergray: '#a3a3a3',
+                        cyberslate: '#1e1e24'
+                    },
+                    fontFamily: {
+                        mono: ['Courier New', 'Courier', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Efecto CRT Scanlines */
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+
+        /* Estilo para simular bordes pixelados retro (Double-line pixel frames) */
+        .pixel-border {
+            border: 4px double #bc2c2c; /* Actualizado con el nuevo rojo desaturado */
+            box-shadow: 0 0 10px rgba(188, 44, 44, 0.2);
+        }
+        
+        .pixel-border-subtle {
+            border: 2px solid #5a1818;
+        }
+
+        .pixel-border-white {
+            border: 4px double #e0e0e0;
+        }
+
+        /* Scrollbar Retro */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #120202;
+            border-left: 2px solid #5a1818;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #bc2c2c; /* Actualizado con el nuevo rojo desaturado */
+            border: 1px solid #120202;
+        }
+
+        /* Parpadeo sutil estilo terminal antigua */
+        @keyframes subtle-flicker {
+            0% { opacity: 0.99; }
+            50% { opacity: 0.97; }
+            100% { opacity: 0.99; }
+        }
+        .flicker-effect {
+            animation: subtle-flicker 4s infinite;
+        }
+
+        /* Estilos específicos de avatares SVG pixelados */
+        .avatar-pixel {
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body class="bg-cyberblack text-cybergray font-mono min-h-screen relative flex flex-col justify-between overflow-x-hidden flicker-effect selection:bg-cyberred selection:text-black">
+    
+    <!-- Filtro CRT -->
+    <div class="crt-overlay"></div>
+
+    <!-- Sonidos de fondo y efectos con Web Audio API -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-toggle-btn');
+            if (soundEnabled) {
+                btn.innerHTML = '🔊 SONIDO: ACTIVADO';
+                btn.classList.add('text-cyberred', 'border-cyberred');
+                btn.classList.remove('text-cybergray', 'border-cyberred_muted');
+                playSynthBeep(600, 0.05, 'triangle');
+            } else {
+                btn.innerHTML = '🔇 SONIDO: MUTED';
+                btn.classList.remove('text-cyberred', 'border-cyberred');
+                btn.classList.add('text-cybergray', 'border-cyberred_muted');
+            }
+        }
+
+        function playSynthBeep(frequency, duration, type = 'sine') {
+            if (!soundEnabled) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log("AudioContext pendiente de interacción.");
+            }
+        }
+
+        function playClickSound() {
+            playSynthBeep(880, 0.03, 'square');
+        }
+
+        function playSuccessSound() {
+            playSynthBeep(440, 0.1, 'sine');
+            setTimeout(() => playSynthBeep(880, 0.15, 'sine'), 80);
+        }
+
+        function playDeleteSound() {
+            playSynthBeep(220, 0.2, 'sawtooth');
+            setTimeout(() => playSynthBeep(110, 0.3, 'sawtooth'), 100);
+        }
+
+        function playAlertSound() {
+            playSynthBeep(150, 0.2, 'sawtooth');
+            setTimeout(() => playSynthBeep(150, 0.2, 'sawtooth'), 150);
+        }
+    </script>
+
+    <!-- HEADER principal estilo diagnóstico de IA -->
+    <header class="border-b-4 border-cyberred_muted bg-cyberdark p-4 md:p-6 relative z-10">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <!-- Luz indicadora palpitante -->
+                <div class="relative flex h-6 w-6">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyberred opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-6 w-6 bg-cyberred border-2 border-white"></span>
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-widest flex items-center gap-2">
+                        NEXUS_<span class="text-cyberred">CORE</span> <span class="text-xs bg-cyberred_muted text-white px-2 py-0.5 rounded">v4.8.9</span>
+                    </h1>
+                    <p class="text-xs text-cyberred tracking-wider font-semibold">SISTEMA INTEGRADO DE DIAGNÓSTICO Y BITÁCORA</p>
+                </div>
+            </div>
+
+            <!-- Panel de Estado Rápido -->
+            <div class="flex flex-wrap items-center gap-4 text-xs font-semibold">
+                <div class="border border-cyberred_muted px-3 py-1 bg-black flex items-center gap-2">
+                    <span class="text-cyberred">SYS_STATUS:</span>
+                    <span class="text-green-500 animate-pulse">ESTABLE [ONLINE]</span>
+                </div>
+                <div class="border border-cyberred_muted px-3 py-1 bg-black flex items-center gap-2">
+                    <span class="text-cyberred">BASE_DIR:</span>
+                    <span class="text-white">/ROOT/PAGINAS_CORE/</span>
+                </div>
+                <button id="sound-toggle-btn" onclick="toggleSound()" class="border-2 border-cyberred px-3 py-1 bg-black text-cyberred transition-all duration-150 hover:bg-cyberred hover:text-black">
+                    🔊 SONIDO: ACTIVADO
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CUERPO PRINCIPAL (Layout Grid de 12 Columnas) -->
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+        
+        <!-- COLUMNA IZQUIERDA: Formulario de Creación y Estadísticas (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- TARJETA: OPERADOR ACTIVO / ESTADO DEL SISTEMA -->
+            <div class="pixel-border bg-cyberdark p-4 flex gap-4 items-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-cyberred_muted text-black text-[9px] font-black px-2 py-0.5 tracking-wider">
+                    OPERADOR_ID: 0203.42
+                </div>
+                <!-- Avatar Pixelado SVG interactivo -->
+                <div class="w-20 h-20 bg-black pixel-border flex items-center justify-center overflow-hidden shrink-0">
+                    <svg viewBox="0 0 16 16" class="w-full h-full avatar-pixel" fill="none" stroke-width="0">
+                        <!-- Rostro similar a "??? / Chaos / The End" -->
+                        <rect x="0" y="0" width="16" height="16" fill="#000" />
+                        <!-- Cara Blanca -->
+                        <rect x="4" y="3" width="8" height="10" fill="#fff" />
+                        <rect x="3" y="5" width="10" height="6" fill="#fff" />
+                        <!-- Ojos Rojos e Intimidantes -->
+                        <rect x="5" y="6" width="2" height="2" fill="#bc2c2c" />
+                        <rect x="9" y="6" width="2" height="2" fill="#bc2c2c" />
+                        <!-- Grieta / Detalles de Sombra en gris -->
+                        <rect x="5" y="5" width="1" height="1" fill="#888" />
+                        <rect x="10" y="5" width="1" height="1" fill="#888" />
+                        <!-- Sonrisa de Calavera/Máscara -->
+                        <rect x="5" y="10" width="6" height="1" fill="#000" />
+                        <rect x="4" y="9" width="1" height="1" fill="#000" />
+                        <rect x="11" y="9" width="1" height="1" fill="#000" />
+                        <rect x="6" y="11" width="4" height="1" fill="#000" />
+                        <!-- Capucha Negra / Cuernos -->
+                        <rect x="2" y="1" width="2" height="3" fill="#330000" />
+                        <rect x="12" y="1" width="2" height="3" fill="#330000" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-white font-bold text-lg">EL VIGILANTE DE CÓDIGO</h2>
+                    <p class="text-xs text-cyberred font-bold uppercase tracking-widest">"Buscando Solución al Caos"</p>
+                    <div class="mt-2 text-[10px] text-cybergray flex gap-2">
+                        <span class="text-cyberred font-semibold">[VIGILANDO]</span>
+                        <span>PROYECTO_LOGS_ONLINE</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORMULARIO: REGISTRAR CAMBIO/ACCIÓN -->
+            <div class="pixel-border bg-black p-5 relative">
+                <!-- Esquinas decorativas de la terminal -->
+                <div class="absolute -top-1 -left-1 w-3 h-3 bg-cyberred"></div>
+                <div class="absolute -top-1 -right-1 w-3 h-3 bg-cyberred"></div>
+                <div class="absolute -bottom-1 -left-1 w-3 h-3 bg-cyberred"></div>
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-cyberred"></div>
+
+                <h3 class="text-white text-lg font-bold border-b border-cyberred_muted pb-2 mb-4 flex items-center gap-2">
+                    <span class="text-cyberred">⚔</span> NUEVO REGISTRO EN BITÁCORA
+                </h3>
+
+                <form id="log-form" onsubmit="saveLog(event)" class="space-y-4 text-xs">
+                    <div>
+                        <label class="block text-cyberred font-bold mb-1 uppercase tracking-wider">ID DE BITÁCORA (AUTO)</label>
+                        <input id="log-uuid" type="text" readonly class="w-full bg-cyberdark border border-cyberred_muted text-cyberred px-3 py-2 cursor-not-allowed focus:outline-none" value="#SYS-824A">
+                    </div>
+
+                    <div>
+                        <label class="block text-cyberred font-bold mb-1 uppercase tracking-wider">TÍTULO DEL CAMBIO / ACCIÓN *</label>
+                        <input id="log-title" required type="text" placeholder="Ej. Rediseño del Navbar / Refactor de BD" class="w-full bg-cyberdark border-2 border-cyberred_muted text-white px-3 py-2 focus:border-cyberred focus:outline-none">
+                    </div>
+
+                    <!-- NUEVA SELECCIÓN DE PÁGINAS/SITIOS (APARTADOS) -->
+                    <div>
+                        <label class="block text-cyberred font-bold mb-1 uppercase tracking-wider">PÁGINA O SITIO DE DESTINO *</label>
+                        <div class="flex gap-2">
+                            <select id="log-site-select" onchange="toggleNewSiteInput()" class="w-1/2 bg-cyberdark border-2 border-cyberred_muted text-white px-3 py-2 focus:border-cyberred focus:outline-none cursor-pointer">
+                                <!-- Se llena dinámicamente -->
+                            </select>
+                            <input id="log-site-new" type="text" placeholder="Nombre nueva página..." class="w-1/2 bg-cyberdark border-2 border-cyberred_muted text-white px-3 py-2 focus:border-cyberred focus:outline-none hidden">
+                        </div>
+                        <p class="text-[9px] text-cybergray mt-1">Selecciona una página existente o añade una nueva para catalogarla en su apartado.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-cyberred font-bold mb-1 uppercase tracking-wider">CATEGORÍA</label>
+                            <select id="log-category" class="w-full bg-cyberdark border-2 border-cyberred_muted text-white px-3 py-2 focus:border-cyberred focus:outline-none cursor-pointer">
+                                <option value="ACCION">⚡ ACCIÓN</option>
+                                <option value="CREACION">🛡 CREACIÓN</option>
+                                <option value="CAMBIO" selected>🛠 CAMBIO/MOD</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-cyberred font-bold mb-1 uppercase tracking-wider">IMPACTO / NIVEL</label>
+                            <select id="log-impact" class="w-full bg-cyberdark border-2 border-cyberred_muted text-white px-3 py-2 focus:border-cyberred focus:outline-none cursor-pointer">
+                                <option value="BAJO">🟢 BAJO</option>
+                                <option value="MEDIO">🟡 MEDIO</option>
+                                <option value="CRITICO" class="text-cyberred font-bold">🔴 CRÍTICO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-cyberred font-bold mb-1 uppercase tracking-wider">DESCRIPCIÓN DE LA ACCIÓN *</label>
+                        <textarea id="log-desc" required rows="4" placeholder="Describe a fondo qué cambiaste, qué archivos editaste y por qué..." class="w-full bg-cyberdark border-2 border-cyberred_muted text-white px-3 py-2 focus:border-cyberred focus:outline-none resize-none"></textarea>
+                    </div>
+
+                    <!-- Botón de Envío Metálico Cyber -->
+                    <button type="submit" onclick="playClickSound()" class="w-full py-3 bg-cyberred_muted border-2 border-cyberred text-white font-bold uppercase tracking-widest text-center transition-all duration-150 hover:bg-cyberred hover:text-black hover:scale-[1.02] active:scale-[0.98]">
+                        INYECTAR REGISTRO EN CORE
+                    </button>
+                </form>
+            </div>
+
+            <!-- ESTADÍSTICAS DEL SISTEMA (PIXEL ART STYLE) -->
+            <div class="pixel-border bg-cyberdark p-4 text-xs space-y-3">
+                <h4 class="text-white font-bold border-b border-cyberred_muted pb-1">MÉTRICAS DE ARCHIVO</h4>
+                
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <span>ACCIONES TOTALES:</span>
+                        <span id="stat-total" class="text-white font-bold">0</span>
+                    </div>
+                    <div class="w-full bg-black h-3 border border-cyberred_muted">
+                        <div id="bar-total" class="bg-cyberred h-full transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-[10px]">
+                    <div class="bg-black p-2 border border-cyberred_muted text-center">
+                        <span class="block text-cyberred font-bold">ACCIONES</span>
+                        <span id="stat-acciones" class="text-sm font-bold text-white">0</span>
+                    </div>
+                    <div class="bg-black p-2 border border-cyberred_muted text-center">
+                        <span class="block text-cyberred font-bold">CREACIONES</span>
+                        <span id="stat-creaciones" class="text-sm font-bold text-white">0</span>
+                    </div>
+                    <div class="bg-black p-2 border border-cyberred_muted text-center">
+                        <span class="block text-cyberred font-bold">CAMBIOS</span>
+                        <span id="stat-cambios" class="text-sm font-bold text-white">0</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- COLUMNA DERECHA: Bitácoras, Historial e Indexación de Páginas (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+            
+            <!-- APARTADO DE DIRECTORIOS (PÁGINAS) -->
+            <div class="pixel-border bg-cyberdark p-4">
+                <div class="text-white font-bold text-xs uppercase mb-3 flex items-center gap-2">
+                    <span class="text-cyberred">📂</span> DIRECTORIOS DE PÁGINAS (APARTADOS INDEPENDIENTES)
+                </div>
+                <div id="sites-directories" class="flex flex-wrap gap-3">
+                    <!-- Se inyectan botones estilo carpeta retro y botones de borrado con JS -->
+                </div>
+            </div>
+
+            <!-- CONTROLES DE FILTRO Y BÚSQUEDA -->
+            <div class="pixel-border bg-black p-4 flex flex-col md:flex-row gap-3 justify-between items-center text-xs">
+                <!-- Buscador -->
+                <div class="w-full md:w-1/2 relative">
+                    <span class="absolute left-3 top-2.5 text-cyberred font-bold">⚡</span>
+                    <input id="search-input" oninput="filterLogs()" type="text" placeholder="Buscar registro o código..." class="w-full bg-cyberdark border border-cyberred_muted text-white pl-8 pr-3 py-2 focus:outline-none focus:border-cyberred">
+                </div>
+                <!-- Filtros Rápidos -->
+                <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+                    <button onclick="setFilter('ALL')" class="filter-btn px-3 py-1 bg-cyberred text-black font-bold uppercase transition-all duration-150 border border-cyberred">TODO</button>
+                    <button onclick="setFilter('ACCION')" class="filter-btn px-3 py-1 bg-cyberdark text-cybergray hover:text-white transition-all duration-150 border border-cyberred_muted">ACCIONES</button>
+                    <button onclick="setFilter('CREACION')" class="filter-btn px-3 py-1 bg-cyberdark text-cybergray hover:text-white transition-all duration-150 border border-cyberred_muted">CREACIONES</button>
+                    <button onclick="setFilter('CAMBIO')" class="filter-btn px-3 py-1 bg-cyberdark text-cybergray hover:text-white transition-all duration-150 border border-cyberred_muted">CAMBIOS</button>
+                </div>
+            </div>
+
+            <!-- FEED DE BITÁCORAS -->
+            <div id="logs-container" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <div class="pixel-border bg-cyberdark p-6 text-center text-cyberred font-bold uppercase">
+                    Cargando base de datos de anomalías y código...
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER ESTILO TERMINAL RETRO -->
+    <footer class="border-t-4 border-cyberred_muted bg-black p-4 text-xs relative z-10 text-center flex flex-col md:flex-row justify-between items-center max-w-7xl w-full mx-auto gap-4 mt-6">
+        <div>
+            © 2026 NEXUS_CORE. <span class="text-cyberred">PROPIEDAD DE OPERADOR VIGILANTE.</span> SIN ACCESO EXTERNO NO AUTORIZADO.
+        </div>
+        <div class="flex gap-4">
+            <button onclick="exportLogs()" class="hover:text-cyberred text-white transition-all duration-150">[ EXPORTAR BITÁCORA JSON ]</button>
+            <button onclick="triggerClearAll()" class="text-cyberred hover:underline font-bold">[ DETONAR BASE DE DATOS ]</button>
+        </div>
+    </footer>
+
+    <!-- MODAL PERSONALIZADO DE CONFIRMACIÓN GÓTICO -->
+    <div id="custom-modal" class="hidden fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
+        <div class="pixel-border bg-cyberdark max-w-md w-full p-6 relative">
+            <div class="absolute -top-1 -left-1 w-3 h-3 bg-cyberred"></div>
+            <div class="absolute -top-1 -right-1 w-3 h-3 bg-cyberred"></div>
+            <div class="absolute -bottom-1 -left-1 w-3 h-3 bg-cyberred"></div>
+            <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-cyberred"></div>
+
+            <div class="text-center space-y-4">
+                <div class="text-cyberred text-3xl animate-pulse">⚠️</div>
+                <h3 id="modal-title" class="text-white font-bold text-lg tracking-widest uppercase">ALERTA DE SEGURIDAD</h3>
+                <p id="modal-text" class="text-xs text-cybergray leading-relaxed font-mono">¿Estás seguro de que deseas purgar esta información del sistema operativo?</p>
+                
+                <div class="flex justify-center gap-4 pt-2">
+                    <button id="modal-confirm-btn" class="px-4 py-2 bg-cyberred text-black font-black uppercase text-xs border border-cyberred hover:bg-white hover:text-black transition-all">
+                        PROSEGUIR DESTRUCCIÓN
+                    </button>
+                    <button id="modal-cancel-btn" onclick="closeCustomModal()" class="px-4 py-2 bg-black text-white font-bold uppercase text-xs border border-cyberred_muted hover:border-white transition-all">
+                        CANCELAR ACCIÓN
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA DE JAVASCRIPT INTEGRADA -->
+    <script>
+        let logs = [];
+        let sites = []; // Lista persistente de carpetas/páginas
+        let currentFilter = 'ALL';
+        let currentSiteFilter = 'ALL'; 
+        let customModalCallback = null;
+
+        // Páginas predeterminadas iniciales si el sistema está vacío
+        const defaultSites = [
+            "www.landing-principal.com",
+            "dashboard_admin",
+            "base_de_datos"
+        ];
+
+        // Generador de ID Aleatorios al estilo CyberGótico
+        function generateCyberUUID() {
+            const hex = '0123456789ABCDEF';
+            let out = 'SYS-';
+            for(let i=0; i<4; i++) {
+                out += hex[Math.floor(Math.random() * 16)];
+            }
+            return out;
+        }
+
+        function reloadUUID() {
+            document.getElementById('log-uuid').value = `#${generateCyberUUID()}`;
+        }
+
+        function saveLogsToStorage() {
+            localStorage.setItem('cyber_nexus_logs', JSON.stringify(logs));
+            localStorage.setItem('cyber_nexus_sites', JSON.stringify(sites));
+            updateMetrics();
+            renderSitesDirectories();
+            populateSitesDropdown();
+        }
+
+        // Carga Inicial del Core
+        function loadLogs() {
+            const storedLogs = localStorage.getItem('cyber_nexus_logs');
+            const storedSites = localStorage.getItem('cyber_nexus_sites');
+            
+            if (storedSites) {
+                sites = JSON.parse(storedSites);
+            } else {
+                sites = [...defaultSites];
+            }
+
+            if (storedLogs) {
+                logs = JSON.parse(storedLogs);
+            } else {
+                // Datos demo para ambientar la primera carga
+                logs = [
+                    {
+                        id: '#SYS-B3C5',
+                        title: 'Refactorización Estructural del Navbar Principal',
+                        category: 'CAMBIO',
+                        impact: 'MEDIO',
+                        site: 'www.landing-principal.com',
+                        desc: 'Se modificó la disposición de los menús usando Flexbox moderno. Se añadieron bordes pixelados de 2px y una sombra carmesí para que coincidiera con la estética gótica-cyberpunk que estamos proyectando. Completamente responsivo.',
+                        date: '2026-06-25 14:22:10',
+                        operator: 'EL VIGILANTE'
+                    },
+                    {
+                        id: '#SYS-C7A1',
+                        title: 'Inyección de Sistema de Alerta por Consola',
+                        category: 'CREACION',
+                        impact: 'CRITICO',
+                        site: 'base_de_datos',
+                        desc: 'Creé la nueva base de datos para almacenar el feedback de usuarios en un archivo JSON local encriptado. El script ahora detecta intentos de intrusión y bloquea IPs después de 3 fallos.',
+                        date: '2026-06-24 09:15:45',
+                        operator: 'SISTEMA COMPROMETIDO'
+                    }
+                ];
+                saveLogsToStorage();
+            }
+            reloadUUID();
+            renderSitesDirectories();
+            populateSitesDropdown();
+            filterLogs();
+            updateMetrics();
+        }
+
+        function renderSitesDirectories() {
+            const container = document.getElementById('sites-directories');
+            container.innerHTML = '';
+
+            // Contenedor del grupo ROOT_CORE (Split button similar a los demás)
+            const rootGroup = document.createElement('div');
+            let isRootActive = currentSiteFilter === 'ALL';
+            rootGroup.className = `flex items-center border transition-all ${
+                isRootActive ? 'border-cyberred' : 'border-cyberred_muted'
+            }`;
+
+            // Botón para seleccionar ROOT_CORE
+            const rootSelectBtn = document.createElement('button');
+            rootSelectBtn.onclick = () => selectSiteDirectory('ALL');
+            rootSelectBtn.className = `px-3 py-1.5 text-xs font-bold transition-all ${
+                isRootActive 
+                ? 'bg-cyberred text-black' 
+                : 'bg-cyberdark text-cybergray hover:text-white'
+            }`;
+            rootSelectBtn.innerHTML = `📁 ROOT_CORE [${logs.length}]`;
+
+            // Botón de borrado de ROOT_CORE [X]
+            const rootDeleteBtn = document.createElement('button');
+            rootDeleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                triggerDeleteRoot();
+            };
+            rootDeleteBtn.className = `px-2 py-1.5 text-xs font-black transition-all border-l ${
+                isRootActive
+                ? 'bg-cyberred_dark text-cyberred hover:bg-black hover:text-white border-cyberred'
+                : 'bg-black text-cyberred_muted hover:bg-cyberred_dark hover:text-cyberred border-cyberred_muted'
+            }`;
+            rootDeleteBtn.innerHTML = '✕';
+            rootDeleteBtn.title = `Detonar todo el sistema ROOT_CORE (borra carpetas y registros)`;
+
+            rootGroup.appendChild(rootSelectBtn);
+            rootGroup.appendChild(rootDeleteBtn);
+            container.appendChild(rootGroup);
+
+            // Renderizar cada carpeta individual con su botón de destrucción
+            sites.forEach(site => {
+                const siteLogsCount = logs.filter(l => l.site === site).length;
+                const isSelected = currentSiteFilter === site;
+
+                // Contenedor del grupo de la carpeta (Split button)
+                const folderGroup = document.createElement('div');
+                folderGroup.className = `flex items-center border transition-all ${
+                    isSelected ? 'border-cyberred' : 'border-cyberred_muted'
+                }`;
+
+                // Botón para seleccionar la carpeta
+                const selectBtn = document.createElement('button');
+                selectBtn.onclick = () => selectSiteDirectory(site);
+                selectBtn.className = `px-3 py-1.5 text-xs font-bold transition-all ${
+                    isSelected 
+                    ? 'bg-cyberred text-black' 
+                    : 'bg-cyberdark text-cybergray hover:text-white'
+                }`;
+                selectBtn.innerHTML = `📂 /${site.substring(0, 18)}${site.length > 18 ? '...' : ''} [${siteLogsCount}]`;
+
+                // Botón de borrado de carpeta [X]
+                const deleteBtn = document.createElement('button');
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    triggerDeleteSite(site);
+                };
+                deleteBtn.className = `px-2 py-1.5 text-xs font-black transition-all border-l ${
+                    isSelected
+                    ? 'bg-cyberred_dark text-cyberred hover:bg-black hover:text-white border-cyberred'
+                    : 'bg-black text-cyberred_muted hover:bg-cyberred_dark hover:text-cyberred border-cyberred_muted'
+                }`;
+                deleteBtn.innerHTML = '✕';
+                deleteBtn.title = `Detonar apartado /${site} y todas sus bitácoras`;
+
+                folderGroup.appendChild(selectBtn);
+                folderGroup.appendChild(deleteBtn);
+                container.appendChild(folderGroup);
+            });
+        }
+
+        // Filtrar por carpeta seleccionada
+        function selectSiteDirectory(site) {
+            playClickSound();
+            currentSiteFilter = site;
+            renderSitesDirectories();
+            filterLogs();
+        }
+
+        function triggerDeleteRoot() {
+            const message = `¿Deseas purgar de forma absoluta el directorio raíz "ROOT_CORE"? ` +
+                            `Esta acción erradicará todas las carpetas creadas y las [${logs.length}] bitácoras ` +
+                            `almacenadas de manera irreversible, dejando el sistema totalmente vacío.`;
+
+            openCustomModal(
+                "🚨 DETONACIÓN INTEGRAL DEL CORE",
+                message,
+                function() {
+                    playDeleteSound();
+                    // Limpieza absoluta de registros y carpetas creadas
+                    logs = [];
+                    sites = [];
+                    currentSiteFilter = 'ALL';
+                    saveLogsToStorage();
+                    filterLogs();
+                }
+            );
+        }
+
+        function triggerDeleteSite(siteName) {
+            const logsInSiteCount = logs.filter(l => l.site === siteName).length;
+            const message = `¿Deseas purgar de forma absoluta el directorio "/${siteName}"? ` +
+                            `Esta acción erradicará el apartado de la base de datos junto con las ` +
+                            `[${logsInSiteCount}] bitácoras indexadas en él de forma irreversible.`;
+            
+            openCustomModal(
+                "💥 DETONAR APARTADO COMPLETO",
+                message,
+                function() {
+                    playDeleteSound();
+                    // Eliminar la carpeta de la lista de directorios
+                    sites = sites.filter(s => s !== siteName);
+                    // Eliminar todos los logs de esa carpeta
+                    logs = logs.filter(l => l.site !== siteName);
+                    
+                    // Si estábamos visualizando la carpeta borrada, regresar al ROOT
+                    if (currentSiteFilter === siteName) {
+                        currentSiteFilter = 'ALL';
+                    }
+
+                    saveLogsToStorage();
+                    filterLogs();
+                }
+            );
+        }
+
+        // Llenar selector del formulario
+        function populateSitesDropdown() {
+            const select = document.getElementById('log-site-select');
+            select.innerHTML = '';
+
+            sites.forEach(site => {
+                const opt = document.createElement('option');
+                opt.value = site;
+                opt.innerText = `📂 ${site}`;
+                select.appendChild(opt);
+            });
+
+            // Opción comodín para agregar uno nuevo
+            const optNew = document.createElement('option');
+            optNew.value = "_NEW_";
+            optNew.innerText = "➕ [CREAR NUEVO APARTADO]";
+            select.appendChild(optNew);
+
+            toggleNewSiteInput();
+        }
+
+        // Mostrar u ocultar el input de texto según se requiera una nueva página
+        function toggleNewSiteInput() {
+            const select = document.getElementById('log-site-select');
+            const newInput = document.getElementById('log-site-new');
+            if (select.value === "_NEW_") {
+                newInput.classList.remove('hidden');
+                newInput.required = true;
+                newInput.focus();
+            } else {
+                newInput.classList.add('hidden');
+                newInput.required = false;
+                newInput.value = "";
+            }
+        }
+
+        // Modificar filtro de categorías (⚡ ACCIÓN, 🛡 CREACIÓN, 🛠 CAMBIO)
+        function setFilter(filterType) {
+            playClickSound();
+            currentFilter = filterType;
+            
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => {
+                if (btn.innerText.includes(filterType === 'ALL' ? 'TODO' : filterType)) {
+                    btn.className = "filter-btn px-3 py-1 bg-cyberred text-black font-bold uppercase transition-all duration-150 border border-cyberred";
+                } else {
+                    btn.className = "filter-btn px-3 py-1 bg-cyberdark text-cybergray hover:text-white transition-all duration-150 border border-cyberred_muted";
+                }
+            });
+
+            filterLogs();
+        }
+
+        // Buscar y Filtrar simultáneamente por carpeta y categoría
+        function filterLogs() {
+            const searchVal = document.getElementById('search-input').value.toLowerCase();
+            const filtered = logs.filter(log => {
+                const matchesSearch = log.title.toLowerCase().includes(searchVal) || 
+                                      log.desc.toLowerCase().includes(searchVal);
+                const matchesCategory = (currentFilter === 'ALL' || log.category === currentFilter);
+                const matchesSite = (currentSiteFilter === 'ALL' || log.site === currentSiteFilter);
+                
+                return matchesSearch && matchesCategory && matchesSite;
+            });
+            renderLogs(filtered);
+        }
+
+        // Renderizar logs filtrados en pantalla
+        function renderLogs(logsToRender = logs) {
+            const container = document.getElementById('logs-container');
+            container.innerHTML = '';
+
+            if (logsToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="pixel-border-subtle bg-black p-8 text-center text-cyberred_muted font-bold">
+                        [ SIN REGISTROS EN ENTORNO: ${currentSiteFilter === 'ALL' ? 'RAÍZ' : '/' + currentSiteFilter} ]
+                    </div>
+                `;
+                return;
+            }
+
+            // Orden cronológico inverso (más nuevo primero)
+            const sortedLogs = [...logsToRender].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            sortedLogs.forEach(log => {
+                let impactColor = 'border-green-600 text-green-500';
+                if(log.impact === 'MEDIO') impactColor = 'border-yellow-600 text-yellow-500';
+                if(log.impact === 'CRITICO') impactColor = 'border-cyberred text-cyberred bg-cyberred_dark animate-pulse';
+
+                let catIcon = '🛠';
+                if(log.category === 'ACCION') catIcon = '⚡';
+                if(log.category === 'CREACION') catIcon = '🛡';
+
+                const seed = log.id.charCodeAt(5) || 6;
+                const avatarSvg = `
+                    <svg viewBox="0 0 16 16" class="w-12 h-12 avatar-pixel bg-black border border-cyberred_muted" fill="none">
+                        <rect x="0" y="0" width="16" height="16" fill="#000" />
+                        <rect x="3" y="3" width="10" height="10" fill="#fff" />
+                        <rect x="5" y="6" width="2" height="2" fill="${seed % 2 === 0 ? '#bc2c2c' : '#000'}" />
+                        <rect x="9" y="6" width="2" height="2" fill="${seed % 2 === 0 ? '#bc2c2c' : '#000'}" />
+                        <rect x="5" y="10" width="6" height="1" fill="#bc2c2c" />
+                        <rect x="2" y="2" width="12" height="1" fill="#330000" />
+                    </svg>
+                `;
+
+                const logElement = document.createElement('div');
+                logElement.className = 'pixel-border bg-black p-4 relative transition-all duration-150 hover:border-white';
+                logElement.innerHTML = `
+                    <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-3 border-b border-cyberred_muted pb-2">
+                        <div class="flex items-center gap-3">
+                            ${avatarSvg}
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-xs bg-cyberred_muted text-white font-bold px-2 py-0.5">${log.id}</span>
+                                    <span class="text-xs bg-white text-black font-bold px-2 py-0.5">${catIcon} ${log.category}</span>
+                                    <span class="text-[10px] border px-2 py-0.5 font-black uppercase tracking-wider ${impactColor}">IMPACTO: ${log.impact}</span>
+                                </div>
+                                <h3 class="text-white font-bold text-base mt-1 tracking-wider">${log.title}</h3>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-cyberred text-right w-full md:w-auto font-bold">
+                            <div>${log.date}</div>
+                            <div class="text-cybergray font-normal">APARTADO: <span class="text-white">/${log.site}</span></div>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-cybergray whitespace-pre-wrap leading-relaxed bg-cyberdark p-3 border border-cyberred_muted rounded mb-3">
+                        ${log.desc}
+                    </p>
+
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span class="text-cyberred_muted font-semibold tracking-widest">[SISTEMA OPERADO POR EL VIGILANTE]</span>
+                        <button onclick="triggerDelete('${log.id}')" class="text-cyberred font-bold hover:underline bg-cyberred_dark hover:bg-cyberred hover:text-black px-2 py-1 transition-all duration-150 border border-cyberred">
+                            [ DETONAR ENTRADA ]
+                        </button>
+                    </div>
+                `;
+                container.appendChild(logElement);
+            });
+        }
+
+        function saveLog(e) {
+            e.preventDefault();
+            
+            const titleInput = document.getElementById('log-title');
+            const catInput = document.getElementById('log-category');
+            const impactInput = document.getElementById('log-impact');
+            const selectSite = document.getElementById('log-site-select');
+            const newSiteInput = document.getElementById('log-site-new');
+            const descInput = document.getElementById('log-desc');
+            const uuidInput = document.getElementById('log-uuid');
+
+            // Determinar nombre del sitio/carpeta destino
+            let finalSite = selectSite.value;
+            if (finalSite === "_NEW_") {
+                // Sanitizar nombre de carpeta
+                finalSite = newSiteInput.value.trim().toLowerCase().replace(/\s+/g, '_');
+                
+                // Si la carpeta no existía, la creamos en la lista persistente
+                if (finalSite && !sites.includes(finalSite)) {
+                    sites.push(finalSite);
+                }
+            }
+
+            if (!finalSite) return;
+
+            const now = new Date();
+            const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
+
+            const newLog = {
+                id: uuidInput.value,
+                title: titleInput.value,
+                category: catInput.value,
+                impact: impactInput.value,
+                site: finalSite,
+                desc: descInput.value,
+                date: dateStr,
+                operator: 'EL VIGILANTE'
+            };
+
+            logs.unshift(newLog);
+            saveLogsToStorage();
+            playSuccessSound();
+
+            // Limpiar inputs
+            titleInput.value = '';
+            descInput.value = '';
+            newSiteInput.value = '';
+            reloadUUID();
+
+            // Moverse al apartado de la página donde se acaba de inyectar el log
+            currentSiteFilter = finalSite;
+
+            saveLogsToStorage();
+            filterLogs();
+        }
+
+        // Controladores del Modal Personalizado de Confirmación (Reemplaza confirm() nativo)
+        function openCustomModal(title, text, confirmCallback) {
+            playAlertSound();
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('custom-modal').classList.remove('hidden');
+            customModalCallback = confirmCallback;
+        }
+
+        function closeCustomModal() {
+            playClickSound();
+            document.getElementById('custom-modal').classList.add('hidden');
+            customModalCallback = null;
+        }
+
+        // Enlace del botón de confirmación del modal
+        document.getElementById('modal-confirm-btn').onclick = function() {
+            if (customModalCallback) {
+                customModalCallback();
+            }
+            document.getElementById('custom-modal').classList.add('hidden');
+            customModalCallback = null;
+        };
+
+        // Disparar purga de un solo log
+        function triggerDelete(id) {
+            openCustomModal(
+                "💥 DETONACIÓN DE ENTRADA",
+                `¿Deseas erradicar el log ${id} de los archivos locales del core? Esta acción corromperá el registro de manera permanente.`,
+                function() {
+                    playDeleteSound();
+                    logs = logs.filter(log => log.id !== id);
+                    saveLogsToStorage();
+                    filterLogs();
+                }
+            );
+        }
+
+        // Disparar purga de base de datos completa
+        function triggerClearAll() {
+            openCustomModal(
+                "⚠️ DETONACIÓN NUCLEAR DEL CORE",
+                "ADVERTENCIA DE SEGURIDAD MÁXIMA: Estás a punto de borrar absolutamente toda la bitácora de documentación. ¿Deseas purgar todas las entradas?",
+                function() {
+                    playDeleteSound();
+                    logs = [];
+                    saveLogsToStorage();
+                    filterLogs();
+                }
+            );
+        }
+
+        // Exportar Bitácora como archivo JSON descargable
+        function exportLogs() {
+            playSuccessSound();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `bitacora_nexus_core_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Actualizar estadísticas del sistema
+        function updateMetrics() {
+            const total = logs.length;
+            const acciones = logs.filter(l => l.category === 'ACCION').length;
+            const creaciones = logs.filter(l => l.category === 'CREACION').length;
+            const cambios = logs.filter(l => l.category === 'CAMBIO').length;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-acciones').innerText = acciones;
+            document.getElementById('stat-creaciones').innerText = creaciones;
+            document.getElementById('stat-cambios').innerText = cambios;
+
+            // Calcular barra de progreso (Establecemos 30 logs como umbral de almacenamiento óptimo)
+            const percentage = Math.min((total / 30) * 100, 100);
+            document.getElementById('bar-total').style.width = `${percentage}%`;
+        }
+
+        // Ejecutar en la carga del DOM
+        window.onload = function() {
+            loadLogs();
+        };
+    </script>
+</body>
+</html>
